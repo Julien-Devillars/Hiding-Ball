@@ -48,7 +48,6 @@ public class Grid
         
         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Vector3 pos2D = getWorldPosition(x, z);
-        Debug.Log(pos2D);
         cube.transform.position = new Vector3(pos2D.x, parent.transform.position.y + cell_size, pos2D.z);  
         cube.transform.localScale = new Vector3(cell_size, cell_size, cell_size);
         cube.transform.parent = parent.transform;
@@ -68,5 +67,10 @@ public class Grid
         // Collider
 
         BoxCollider boxCollider = cube.AddComponent<BoxCollider>();
+
+        // Tag
+
+        cube.gameObject.tag = "CubesForLevel";
     }
+
 }
