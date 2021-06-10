@@ -57,16 +57,11 @@ public class Testing : MonoBehaviour
         }
         if (Input.GetMouseButtonDown(2))
         {
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit))
+            list_quads.Clear();
+            for (int i = 0; i < ground.transform.childCount; ++i)
             {
-                if (hit.transform.gameObject.CompareTag("CubesForLevel"))
-                {
-                    getShadowFromObject(hit.transform.gameObject);
-                }
+                getShadowFromObject(ground.transform.GetChild(i).gameObject);
             }
         }
     }
@@ -76,10 +71,10 @@ public class Testing : MonoBehaviour
     {
         Vector3 pos = gameobject.transform.position;
         float midSize = size / 2f;
-        Vector3 pos_00 = new Vector3(pos.x - midSize, pos.y + midSize, pos.z - midSize);
-        Vector3 pos_01 = new Vector3(pos.x + midSize, pos.y + midSize, pos.z - midSize);
-        Vector3 pos_10 = new Vector3(pos.x + midSize, pos.y + midSize, pos.z + midSize);
-        Vector3 pos_11 = new Vector3(pos.x - midSize, pos.y + midSize, pos.z + midSize);
+        Vector3 pos_00 = new Vector3(pos.x - midSize, pos.y + midSize - 0.01f, pos.z - midSize);
+        Vector3 pos_01 = new Vector3(pos.x + midSize, pos.y + midSize - 0.01f, pos.z - midSize);
+        Vector3 pos_10 = new Vector3(pos.x + midSize, pos.y + midSize - 0.01f, pos.z + midSize);
+        Vector3 pos_11 = new Vector3(pos.x - midSize, pos.y + midSize - 0.01f, pos.z + midSize);
 
         List<Vector3> list_postitions = new List<Vector3>();
         list_postitions.Add(pos_00);
@@ -94,9 +89,9 @@ public class Testing : MonoBehaviour
         }
     }
 
-    List<Vector3> quadTree(List<Vector3> pos, int subdivision)
+    void quadTree(List<Vector3> pos, int subdivision)
     {
-        List<Vector3> quad = new List<Vector3>();
+        List<List<Vector3>> quad = new List<List<Vector3>>();
         float sizeSubdivision = size / subdivision;
 
         if(subdivision < SUBDIVISION_MAX)
@@ -105,6 +100,8 @@ public class Testing : MonoBehaviour
             Debug.DrawLine(pos[1], pos[2], Color.red, 10f);
             Debug.DrawLine(pos[2], pos[3], Color.red, 10f);
             Debug.DrawLine(pos[3], pos[0], Color.red, 10f);
+
+            bool should_go_deeper = false;
 
             for (int i = 0; i < pos.Count; ++i)
             {
@@ -117,17 +114,21 @@ public class Testing : MonoBehaviour
                 if (isInShadow(pos[i]))
                 {
                     list_quads.Add(pos[i]);
+                    should_go_deeper = true;
                 }
 
-                quadTree(new_pos, subdivision + 1);
+                quad.Add(new_pos);
+            }
+
+            if(should_go_deeper)
+            {
+                for (int i = 0; i < quad.Count; ++i)
+                {
+                    quadTree(quad[i], subdivision + 1);
+                }
             }
 
         }
-
-
-        //isInShadow(pos_00);
-
-        return quad;
     }
 
     bool isInShadow(Vector3 source)
