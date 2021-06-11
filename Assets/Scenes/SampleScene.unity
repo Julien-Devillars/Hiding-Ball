@@ -152,12 +152,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8f063782ec85f5429dd71e79b9a050e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  width: 8
-  height: 8
-  size: 1
+  width: 20
+  height: 20
+  size: 0.5
   ground: {fileID: 1194468239}
   cam: {fileID: 963194227}
-  subdivision: 2
+  SUBDIVISION_MAX: 2
   emitter: {fileID: 977908766}
 --- !u!4 &939451753
 Transform:

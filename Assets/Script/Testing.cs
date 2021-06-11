@@ -16,12 +16,12 @@ public class Testing : MonoBehaviour
     public int SUBDIVISION_MAX = 2;
     public GameObject emitter;
 
-    private List<Vector3> list_quads;
+    private List<List<Vector3>> list_quads;
 
     private void Start()
     {
         grid = new Grid(width, height, size, ground);
-        list_quads = new List<Vector3>();
+        list_quads = new List<List<Vector3>>();
     }
 
     public void Update()
@@ -49,7 +49,7 @@ public class Testing : MonoBehaviour
 
             if (Physics.Raycast(ray, out hit))
             {
-                if (hit.transform.gameObject.CompareTag("CubesForLevel"))
+                if (hit.transform.gameObject.CompareTag("CubesForLevel") && hit.transform.position.y != size)
                 {
                     Destroy(hit.transform.gameObject);
                 }
@@ -62,6 +62,15 @@ public class Testing : MonoBehaviour
             for (int i = 0; i < ground.transform.childCount; ++i)
             {
                 getShadowFromObject(ground.transform.GetChild(i).gameObject);
+            }
+
+            for (int i = 0; i < list_quads.Count; i++)
+            {
+                for (int j = 0; j < list_quads[i].Count; ++j)
+                {
+                    for (int k = 0; k < 5; ++k)
+                        Debug.DrawLine(list_quads[i][j], list_quads[i][(j + 1) % list_quads[i].Count], Color.white, 10f);
+                }
             }
         }
     }
@@ -83,10 +92,6 @@ public class Testing : MonoBehaviour
         list_postitions.Add(pos_11);
 
         quadTree(list_postitions, 0);
-        for(int i = 0; i < list_quads.Count; i++)
-        {
-            Debug.DrawLine(list_quads[i], list_quads[(i+1)%list_quads.Count], Color.white, 10f);
-        }
     }
 
     void quadTree(List<Vector3> pos, int subdivision)
@@ -102,7 +107,9 @@ public class Testing : MonoBehaviour
             Debug.DrawLine(pos[3], pos[0], Color.red, 10f);
 
             bool should_go_deeper = false;
-
+            int all_vertices_on_shadow = 1;
+            GameObject same_emitting_cube = null;
+            List<Vector3> pos_in_shadows = new List<Vector3>();
             for (int i = 0; i < pos.Count; ++i)
             {
                 List<Vector3> new_pos = new List<Vector3>();
@@ -111,16 +118,27 @@ public class Testing : MonoBehaviour
                 new_pos.Add((pos[i] + pos[(i + 2) % pos.Count])/2);
                 new_pos.Add((pos[i] + pos[(i + 3) % pos.Count])/2);
 
-                if (isInShadow(pos[i]))
+                GameObject cube_emitting_shadows = isInShadow(pos[i]);
+                if(!same_emitting_cube)
                 {
-                    list_quads.Add(pos[i]);
+                    same_emitting_cube = cube_emitting_shadows;
+                }
+                if (cube_emitting_shadows)
+                {
+                    pos_in_shadows.Add(pos[i]);
                     should_go_deeper = true;
+                    if(cube_emitting_shadows == same_emitting_cube)
+                    {
+                        all_vertices_on_shadow <<= 1;
+                    }
                 }
 
                 quad.Add(new_pos);
             }
 
-            if(should_go_deeper)
+            list_quads.Add(pos_in_shadows);
+
+            if(should_go_deeper && all_vertices_on_shadow != 16)
             {
                 for (int i = 0; i < quad.Count; ++i)
                 {
@@ -131,7 +149,7 @@ public class Testing : MonoBehaviour
         }
     }
 
-    bool isInShadow(Vector3 source)
+    GameObject isInShadow(Vector3 source)
     {
         Vector3 fromPosition = source;
         Vector3 pos_emitter = emitter.gameObject.transform.position;
@@ -146,10 +164,10 @@ public class Testing : MonoBehaviour
         {
             if (hit.transform.CompareTag("CubesForLevel"))
             {
-                return true;
+                return hit.transform.gameObject;
             }
         }
-        return false;
+        return null;
     }
 
 }
