@@ -42,7 +42,7 @@ public class Grid
         return height;
     }
 
-    public void instantiateCube(int x, int z, GameObject parent)
+    public GameObject instantiateCube(int x, int z, GameObject parent)
     {
         // Position
         
@@ -70,7 +70,9 @@ public class Grid
 
         // Tag
 
-        cube.gameObject.tag = "CubesForLevel";
+        cube.gameObject.tag = "CubesForGround";
+
+        return cube;
     }
 
 }
