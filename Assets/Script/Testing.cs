@@ -5,46 +5,66 @@ using UnityEngine;
 public class Testing : MonoBehaviour
 {
 
-    public int width;
-    public int height;
-    public float size;
-    public GameObject ground;
+    public int mWidth;
+    public int mHeight;
+    public float mSize;
+    public GameObject mFloor;
 
-    public Camera cam;
-    private Grid grid;
+    private bool mFlagLeftClickPressed = false;
+    private bool mFlagRightClickPressed = false;
+
+    public Camera mCamera;
+    private Grid mGrid;
 
     public int SUBDIVISION_MAX = 2;
-    public GameObject emitter;
+    public GameObject mEmitter;
 
-    private List<List<Vector3>> list_quads;
+    Utils mUtils = new Utils();
+    private List<Wall> mWalls;
 
     private void Start()
     {
-        grid = new Grid(width, height, size, ground);
-        list_quads = new List<List<Vector3>>();
+        mGrid = new Grid(mWidth, mHeight, mSize, mFloor);
+        mWalls = new List<Wall>();
     }
 
     public void Update()
     {
         if(Input.GetMouseButtonDown(0))
+            mFlagLeftClickPressed = true;
+        
+        if(Input.GetMouseButtonUp(0))
+            mFlagLeftClickPressed = false;
+        
+        if (Input.GetMouseButtonDown(1))
+            mFlagRightClickPressed = true;
+        
+        if (Input.GetMouseButtonUp(1))
+            mFlagRightClickPressed = false;
+
+
+        if (Input.GetMouseButtonDown(0))
         {
-           Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+            Ray ray = mCamera.ScreenPointToRay(Input.mousePosition);
 
             RaycastHit hit;
 
-            if(Physics.Raycast(ray, out hit))
+            if (Physics.Raycast(ray, out hit))
             {
-                if (hit.transform.gameObject.CompareTag("CubesForGround") || hit.transform.gameObject.CompareTag("CubesForLevel"))
+                if ((hit.transform.gameObject.CompareTag("CubesForGround") || hit.transform.gameObject.CompareTag("CubesForLevel"))
+                    && hit.transform.childCount == 0)
                 {
                     Transform transform = hit.transform;
-                    GameObject new_cube =  grid.instantiateCube((int)(transform.position.x / size), (int)(transform.position.z / size), hit.transform.gameObject);
+                    GameObject new_cube = mGrid.instantiateCube((int)(transform.position.x / mSize), (int)(transform.position.z / mSize), hit.transform.gameObject);
                     new_cube.transform.tag = "CubesForLevel";
+                    updateWallsOnModification();
                 }
             }
         }
-        if (Input.GetMouseButtonDown(1))
+
+        if (mFlagRightClickPressed)
         {
-            Ray ray = cam.ScreenPointToRay(Input.mousePosition);
+            Ray ray = mCamera.ScreenPointToRay(Input.mousePosition);
 
             RaycastHit hit;
 
@@ -53,37 +73,82 @@ public class Testing : MonoBehaviour
                 if (hit.transform.gameObject.CompareTag("CubesForLevel"))
                 {
                     Destroy(hit.transform.gameObject);
+                    updateWallsOnModification();
                 }
             }
         }
+
         if (Input.GetMouseButtonDown(2))
         {
-
-            list_quads.Clear();
-            for (int i = 0; i < ground.transform.childCount; ++i)
+            for (int i = 0; i < mWalls.Count; ++i)
             {
-                if(ground.transform.GetChild(i).childCount == 0)
+                mWalls[i].clearShadowQuad();
+            }
+
+            for (int i = 0; i < mFloor.transform.childCount; ++i)
+            {
+                if(mFloor.transform.GetChild(i).childCount == 0)
                 {
-                    getShadowFromObject(ground.transform.GetChild(i).gameObject);
+                    getShadowFromObject(mFloor.transform.GetChild(i).gameObject);
                 }
             }
 
-            for (int i = 0; i < list_quads.Count; i++)
+            for(int i = 0; i < mWalls.Count; ++i)
             {
-                for (int j = 0; j < list_quads[i].Count; ++j)
-                {
-                    for(int k = 0; k < 5; k++)
-                        Debug.DrawLine(list_quads[i][j], list_quads[i][(j + 1) % list_quads[i].Count], Color.white, 4f);
-                }
+                mWalls[i].drawShadowQuad();
             }
         }
     }
 
-    
+    void updateWallsOnModification()
+    {
+        mWalls.Clear();
+        for (int index_ground = 0; index_ground < mFloor.transform.childCount; ++index_ground)
+        {
+            GameObject ground_cube = mFloor.transform.GetChild(index_ground).gameObject;
+            if (ground_cube.transform.childCount > 0)
+            {
+                GameObject child_wall = ground_cube.transform.GetChild(0).gameObject;
+
+                bool already_seen = false;
+
+                // Check if the cube is already in a neighbor
+                for (int index_seen_neighbors = 0; index_seen_neighbors < mWalls.Count; index_seen_neighbors++)
+                {
+                    if (mWalls[index_seen_neighbors].getWalls().Contains(child_wall))
+                        already_seen = true;
+                }
+
+                // If not, get the new neighbor
+                if (!already_seen)
+                {
+                    Wall neighbor_walls = new Wall();
+                    neighbor_walls.addWall(child_wall);
+
+                    for(int index_wall = 0; index_wall < neighbor_walls.getWalls().Count; ++index_wall)
+                    {
+                        List<GameObject> local_neighbor = mUtils.getNeighborHood(neighbor_walls.getWalls()[index_wall], mSize);
+
+                        for (int index_local_wall = 0; index_local_wall < local_neighbor.Count; ++index_local_wall)
+                        {
+                            if(!neighbor_walls.getWalls().Contains(local_neighbor[index_local_wall]))
+                            {
+                                neighbor_walls.addWall(local_neighbor[index_local_wall]);
+                            }
+                        }
+                    }
+
+                    mWalls.Add(neighbor_walls);
+                }
+            }
+        }
+
+    }
+
     public void getShadowFromObject(GameObject gameobject)
     {
         Vector3 pos = gameobject.transform.position;
-        float midSize = size / 2f;
+        float midSize = mSize / 2f;
         Vector3 pos_00 = new Vector3(pos.x - midSize, pos.y + midSize - 0.01f, pos.z - midSize);
         Vector3 pos_01 = new Vector3(pos.x + midSize, pos.y + midSize - 0.01f, pos.z - midSize);
         Vector3 pos_10 = new Vector3(pos.x + midSize, pos.y + midSize - 0.01f, pos.z + midSize);
@@ -100,8 +165,7 @@ public class Testing : MonoBehaviour
 
     void quadTree(List<Vector3> pos, int subdivision)
     {
-        List<List<Vector3>> quad = new List<List<Vector3>>();
-        float sizeSubdivision = size / subdivision;
+        List<List<Vector3>> next_quad = new List<List<Vector3>>();
 
         if(subdivision < SUBDIVISION_MAX)
         {
@@ -113,133 +177,59 @@ public class Testing : MonoBehaviour
             bool should_go_deeper = false;
             int all_vertices_on_shadow = 1;
 
-            List<GameObject> neighbors = new List<GameObject>();
+            int index_current_wall = -1;
 
-            List<Vector3> pos_in_shadows = new List<Vector3>();
+            List<Vector3> quad_vertices = new List<Vector3>();
             for (int i = 0; i < pos.Count; ++i)
             {
-                List<Vector3> new_pos = new List<Vector3>();
-                new_pos.Add(pos[i]);
-                new_pos.Add((pos[i] + pos[(i + 1) % pos.Count])/2);
-                new_pos.Add((pos[i] + pos[(i + 2) % pos.Count])/2);
-                new_pos.Add((pos[i] + pos[(i + 3) % pos.Count])/2);
+                List<Vector3> quad_new_vertices = new List<Vector3>();
+                quad_new_vertices.Add(pos[i]);
+                quad_new_vertices.Add((pos[i] + pos[(i + 1) % pos.Count])/2);
+                quad_new_vertices.Add((pos[i] + pos[(i + 2) % pos.Count])/2);
+                quad_new_vertices.Add((pos[i] + pos[(i + 3) % pos.Count])/2);
 
-                GameObject cube_emitting_shadows = isInShadow(pos[i]);
+                GameObject cube_emitting_shadows = mUtils.isInShadow(pos[i], mEmitter);
 
                 if (cube_emitting_shadows)
                 {
-                    if (neighbors.Count == 0)
+                    should_go_deeper = true;
+
+                    // First time we're checking on which Wall neigbhorhood we are 
+                    if (index_current_wall == -1)
                     {
-                        neighbors = getNeighborHood(cube_emitting_shadows);
+                        for(int j = 0; j < mWalls.Count; ++j)
+                        {
+                            if(mWalls[j].getWalls().Contains(cube_emitting_shadows))
+                            {
+                                index_current_wall = j;
+                            }
+                        }
                     }
-                    pos_in_shadows.Add(pos[i]);
-                    should_go_deeper = true;         
-                    if(neighbors.Contains(cube_emitting_shadows))
+
+                    // Add the vertice into the wall's shadow quad
+                    quad_vertices.Add(pos[i]);
+
+                    if(mWalls[index_current_wall].getWalls().Contains(cube_emitting_shadows))
                     {
                         all_vertices_on_shadow <<= 1; // If 4 vertices are into shadow, stop going deeper
                     }
                 }
 
-                quad.Add(new_pos);
+                next_quad.Add(quad_new_vertices);
             }
-
-            list_quads.Add(pos_in_shadows);
+            if(index_current_wall != -1)
+                mWalls[index_current_wall].addShadowQuad(quad_vertices);
 
             if(should_go_deeper && all_vertices_on_shadow != 16)
             {
-                for (int i = 0; i < quad.Count; ++i)
+                for (int i = 0; i < next_quad.Count; ++i)
                 {
-                    quadTree(quad[i], subdivision + 1);
+                    quadTree(next_quad[i], subdivision + 1);
                 }
             }
 
         }
     }
 
-    GameObject isInShadow(Vector3 source)
-    {
-        Vector3 fromPosition = source;
-        Vector3 pos_emitter = emitter.gameObject.transform.position;
-
-        Vector3 toPosition = pos_emitter;
-
-        Vector3 direction = toPosition - fromPosition;
-
-        RaycastHit hit;
-
-        if (Physics.Raycast(fromPosition, direction, out hit) == GameObject.FindGameObjectWithTag("CubesForLevel"))
-        {
-            if (hit.transform.CompareTag("CubesForLevel"))
-            {
-                return hit.transform.gameObject;
-            }
-        }
-        return null;
-    }
-
-    List<GameObject> getNeighborHood(GameObject original_object)
-    {
-        List<GameObject> neighbors = new List<GameObject>();
-
-        // Adding the original object
-        neighbors.Add(original_object);
-
-        List<Vector3> directions = getAllDirectionFromGameObject(original_object);
-
-        // Add SideNeighbors
-        for (int i = 0; i < directions.Count; ++i)
-        {
-            GameObject side_neighbor = getSideNeighbor(original_object, directions[i]);
-            if(side_neighbor)
-            {
-                neighbors.Add(side_neighbor);
-            }
-        }
-
-        return neighbors;
-    }
-
-    public int flag_left_right = 0;
-    public int flag_front_back = 0;
-    public int flag_top_down = 0;
-
-    List<Vector3> getAllDirectionFromGameObject(GameObject original_object)
-    {
-        List<Vector3> directions = new List<Vector3>();
-
-        for (int left_right = -1; left_right <= 1; ++ left_right)
-        {
-            for (int front_back = -1; front_back <= 1; ++front_back)
-            {
-                for (int top_down = -1; top_down <= 1; ++top_down)
-                {
-                    Vector3 direction = 
-                            left_right  * original_object.transform.right * flag_left_right
-                        +   front_back  * original_object.transform.forward * flag_front_back
-                        +   top_down    * original_object.transform.up * flag_top_down;
-
-                    directions.Add(direction);
-                }
-            }
-        }
-        return directions;
-    }
-
-    GameObject getSideNeighbor(GameObject original_object, Vector3 direction)
-    {
-        Vector3 fromPosition = original_object.transform.position;
-
-        RaycastHit hit;
-
-        if (Physics.Raycast(fromPosition, direction, out hit, size))
-        {
-            if (hit.transform.CompareTag("CubesForLevel"))
-            {
-                return hit.transform.gameObject;
-            }
-        }
-
-        return null;
-    }
 
 }

@@ -5,22 +5,22 @@ using UnityEngine;
 public class Grid
 {
 
-    private int width;
-    private int height;
-    private float cell_size;
-    private int[,] gridArray;
+    private int mWidth;
+    private int mHeight;
+    private float mCellSize;
+    private int[,] mGridArray;
 
     public Grid(int width, int height, float cell_size, GameObject Ground)
     {
-        this.width = width/2;
-        this.height = height/2;
-        this.cell_size = cell_size;
+        this.mWidth = width/2;
+        this.mHeight = height/2;
+        this.mCellSize = cell_size;
 
-        gridArray = new int[width, height];
+        mGridArray = new int[width, height];
 
-        for(int x = -gridArray.GetLength(0)/2; x < gridArray.GetLength(0)/2; x++)
+        for(int x = -mGridArray.GetLength(0)/2; x < mGridArray.GetLength(0)/2; x++)
         {
-            for(int z = -gridArray.GetLength(1)/2; z < gridArray.GetLength(1)/2; z++)
+            for(int z = -mGridArray.GetLength(1)/2; z < mGridArray.GetLength(1)/2; z++)
             {
                 instantiateCube(x, z, Ground);
             }
@@ -29,17 +29,17 @@ public class Grid
 
     private Vector3 getWorldPosition(int x, int z)
     {
-        return new Vector3(x, 0, z) * cell_size;
+        return new Vector3(x, 0, z) * mCellSize;
     }
 
     public int getWidth()
     {
-        return width;
+        return mWidth;
     }
 
     public int getHeight()
     {
-        return height;
+        return mHeight;
     }
 
     public GameObject instantiateCube(int x, int z, GameObject parent)
@@ -48,8 +48,8 @@ public class Grid
         
         GameObject cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
         Vector3 pos2D = getWorldPosition(x, z);
-        cube.transform.position = new Vector3(pos2D.x, parent.transform.position.y + cell_size, pos2D.z);  
-        cube.transform.localScale = new Vector3(cell_size, cell_size, cell_size);
+        cube.transform.position = new Vector3(pos2D.x, parent.transform.position.y + mCellSize, pos2D.z);  
+        cube.transform.localScale = new Vector3(mCellSize, mCellSize, mCellSize);
         cube.transform.parent = parent.transform;
 
         // Colors
