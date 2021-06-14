@@ -17,10 +17,11 @@ public class Testing : MonoBehaviour
     private Grid mGrid;
 
     public int SUBDIVISION_MAX = 2;
+    public int SUBDIVISION_MIN = 0;
     public GameObject mEmitter;
 
     Utils mUtils = new Utils();
-    private List<Wall> mWalls;
+    public static List<Wall> mWalls;
 
     private void Start()
     {
@@ -43,7 +44,7 @@ public class Testing : MonoBehaviour
             mFlagRightClickPressed = false;
 
 
-        if (Input.GetMouseButtonDown(0))
+        if (mFlagLeftClickPressed)
         {
             Ray ray = mCamera.ScreenPointToRay(Input.mousePosition);
 
@@ -220,7 +221,7 @@ public class Testing : MonoBehaviour
             if(index_current_wall != -1)
                 mWalls[index_current_wall].addShadowQuad(quad_vertices);
 
-            if(should_go_deeper && all_vertices_on_shadow != 16)
+            if(subdivision < SUBDIVISION_MIN || should_go_deeper && all_vertices_on_shadow != 16)
             {
                 for (int i = 0; i < next_quad.Count; ++i)
                 {
